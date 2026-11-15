@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bite Window</title>
+<meta name="description" content="Live fishing forecast: best times to fish, moon feeding times, wind, waves, tides and a 7-day outlook.">
+<meta name="theme-color" content="#0a3a47">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bite Window">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
+<style>
+/* Layout: deep-water header band with a wave edge, a big plain-language verdict card,
+   then best times, conditions, tips, tides and the week. Technical charts sit in a fold-out at the end. */
+:root{
+  --bg:#eef4f1; --card:#ffffff; --card-2:#f5f9f7; --ink:#12313a; --muted:#5b7279; --line:#d6e2de;
+  --deep:#0a3a47; --water:#13687a; --on-water:#f2fbfc; --ctl:rgba(255,255,255,.14); --ctl-line:rgba(255,255,255,.28);
+  --bobber:#e0412b; --sand:#f4ead6; --gold:#e3a51a;
+  --exc:#15805a; --good:#4f9a2e; --fair:#c58c0c; --poor:#c13d31;
+  --sea-soft:rgba(19,104,122,.13); --night:rgba(10,58,71,.07);
+  --f-head:"Zilla Slab",Rockwell,"Roboto Slab",Georgia,serif;
+  --f-body:"Nunito Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#09181c; --card:#0f242a; --card-2:#0c1e23; --ink:#e4eff0; --muted:#8fa8ad; --line:#1e3b42;
+  --deep:#062a33; --water:#0d5363; --sand:#2a2618; --bobber:#ff6a4f; --gold:#f2bd3e;
+  --exc:#3cc489; --good:#86cb57; --fair:#eebb39; --poor:#f26a5b; --sea-soft:rgba(80,180,205,.15); --night:rgba(0,0,0,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#09181c; --card:#0f242a; --card-2:#0c1e23; --ink:#e4eff0; --muted:#8fa8ad; --line:#1e3b42;
+  --deep:#062a33; --water:#0d5363; --sand:#2a2618; --bobber:#ff6a4f; --gold:#f2bd3e;
+  --exc:#3cc489; --good:#86cb57; --fair:#eebb39; --poor:#f26a5b; --sea-soft:rgba(80,180,205,.15); --night:rgba(0,0,0,.3); color-scheme:dark}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body)}
+[hidden]{display:none!important}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.in{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-head);margin:0;text-wrap:balance;line-height:1.1}
+h2{font-size:26px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---- water band ---- */
+.band{background:linear-gradient(170deg,var(--deep) 0%,var(--water) 100%);color:var(--on-water);position:relative}
+.band .in{padding-top:calc(18px + env(safe-area-inset-top,0px));padding-bottom:64px;display:grid;gap:22px}
+.offline{background:var(--sand);border:1px solid var(--line);border-radius:14px;padding:10px 16px;font-weight:600;font-size:14.5px}
+.install-tip{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:30;
+  max-width:460px;margin:0 auto;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;font-size:14.5px}
+.install-tip img{width:44px;height:44px;border-radius:10px;flex:none}
+.install-tip button{margin-left:auto;border:0;background:none;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}
+.bar{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:10px;font:700 24px/1 var(--f-head)}
+.brand svg{width:30px;height:38px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.search{position:relative;display:flex;gap:6px;flex:1 1 260px}
+.search input{flex:1;min-width:0;padding:10px 14px;border:1px solid var(--ctl-line);border-radius:999px;background:var(--ctl);color:var(--on-water)}
+.search input::placeholder{color:var(--on-water);opacity:.7}
+.pill{padding:10px 16px;border:1px solid var(--ctl-line);border-radius:999px;background:var(--ctl);color:var(--on-water);cursor:pointer;white-space:nowrap;font-weight:700}
+.pill:hover{background:rgba(255,255,255,.22)}
+.pill.go{background:var(--bobber);border-color:var(--bobber)}
+.units{display:inline-flex;border:1px solid var(--ctl-line);border-radius:999px;overflow:hidden}
+.units button{border:0;background:none;color:var(--on-water);padding:9px 13px;cursor:pointer;font-size:14px;font-weight:600}
+.units button[aria-pressed="true"]{background:var(--on-water);color:var(--deep)}
+.results{position:absolute;top:calc(100% + 6px);left:0;z-index:20;min-width:100%;width:max-content;max-width:min(380px,90vw);
+  background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:6px;display:grid}
+.results button{text-align:left;border:0;background:none;padding:9px 12px;border-radius:9px;cursor:pointer}
+.results button:hover,.results button:focus-visible{background:var(--sea-soft)}
+.results small{color:var(--muted)}
+.place h1{font-size:clamp(38px,7vw,64px)}
+.place p{margin:4px 0 0;opacity:.85;font-size:14px}
+.wave{position:absolute;left:0;right:0;bottom:-1px;height:44px;display:block;width:100%}
+
+/* ---- main ---- */
+main.in{display:grid;gap:34px;grid-template-columns:minmax(0,1fr);padding-block:0 48px;margin-top:-44px;position:relative}
+main>*{min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px}
+
+/* verdict */
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:20px 26px;padding:24px;align-items:center;box-shadow:0 10px 30px rgba(10,58,71,.12)}
+@media (max-width:640px){.verdict{grid-template-columns:1fr;text-align:left}}
+.bob{width:84px;height:120px}
+.bob .float{transform-origin:42px 60px}
+@media (prefers-reduced-motion:no-preference){.bob .float{animation:bob 3.2s ease-in-out infinite}
+  .bob.bite .float{animation:dip 1.6s ease-in-out infinite}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+@keyframes dip{0%,60%,100%{transform:translateY(0)}70%{transform:translateY(14px)}80%{transform:translateY(4px)}}
+.v-eyebrow{font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.v-title{font-size:clamp(30px,5vw,44px);margin:4px 0 10px}
+.v-text{font-size:17px;max-width:62ch;margin:0}
+.v-next{margin-top:12px;display:inline-flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:var(--sand);border-radius:12px;padding:8px 14px;font-weight:600}
+.fishes{display:inline-flex;gap:3px;align-items:center;vertical-align:middle}
+.fishes svg{width:30px;height:20px}
+.fishes.sm svg{width:22px;height:15px}
+.rate-word{font-weight:800;margin-left:8px}
+
+/* section heads */
+.sh{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 16px;margin-bottom:14px}
+.sh p{margin:0;color:var(--muted);font-size:14px}
+
+/* best times */
+.best{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.bt{padding:18px;display:grid;gap:8px;position:relative;overflow:hidden}
+.bt .day{font-weight:800;color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.bt .time{font:700 30px/1 var(--f-head)}
+.bt .why{font-size:14.5px}
+.bt.top{border:2px solid var(--gold)}
+.bt .tag{position:absolute;top:14px;right:14px;background:var(--gold);color:var(--deep);font-size:12px;font-weight:800;padding:2px 10px;border-radius:999px}
+
+/* conditions */
+.conds{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.cd{padding:16px 18px;display:grid;grid-template-columns:44px 1fr;gap:4px 12px;align-items:center}
+.cd .ic{grid-row:span 2;width:44px;height:44px;border-radius:12px;background:var(--sea-soft);display:grid;place-items:center}
+.cd .ic svg{width:28px;height:28px}
+.cd .k{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.cd .w{font:700 21px/1.15 var(--f-head)}
+.cd .d{grid-column:2;font-size:14px;color:var(--muted)}
+
+/* tips */
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.tip{padding:16px 18px;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;background:var(--card-2)}
+.tip svg{width:28px;height:28px}
+.tip b{display:block;font-size:16px}
+.tip span{font-size:14.5px;color:var(--muted)}
+
+/* alerts */
+.alerts{display:grid;gap:8px}
+.alert{border:2px solid var(--poor);background:var(--card);border-radius:14px;padding:12px 16px;font-size:15px;display:flex;gap:10px;align-items:flex-start}
+.alert b{color:var(--poor)}
+
+/* tide summary */
+.tidesum{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.tidesum div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 14px;font-weight:600}
+.tidesum small{display:block;font-weight:700;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+
+/* week */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px}
+@media (max-width:900px){.week{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:150px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}}
+.wd{padding:14px 12px;display:grid;gap:6px;justify-items:center;text-align:center;scroll-snap-align:start}
+.wd .n{font-weight:800}
+.wd .dt{font-size:12px;color:var(--muted);margin-top:-6px}
+.wd svg.wx{width:38px;height:38px}
+.wd .t{font-weight:700}
+.wd .t span{color:var(--muted);font-weight:600}
+.wd .s{font-size:12.5px;color:var(--muted);line-height:1.35}
+.wd.today{border:2px solid var(--water)}
+
+/* details */
+details.more{border:1px solid var(--line);border-radius:18px;background:var(--card)}
+details.more>summary{cursor:pointer;padding:16px 20px;font:700 19px var(--f-head);list-style:none;display:flex;justify-content:space-between;align-items:center}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::after{content:"+";font:700 24px var(--f-body);color:var(--water)}
+details.more[open]>summary::after{content:"–"}
+details.more .body{padding:0 20px 20px;display:grid;gap:24px}
+details.more h3{font-size:19px;margin-bottom:8px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.scroll svg{display:block}
+svg text{font-family:var(--f-body);font-size:11px;fill:var(--muted)}
+svg .t-strong{fill:var(--ink);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:12px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:820px;font-size:14px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top;white-space:nowrap}
+th{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--card-2)}
+tr:last-child td{border-bottom:0}
+td .sub{color:var(--muted);font-size:12px}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px 24px;font-size:14px;color:var(--muted)}
+.how p{margin:0;max-width:65ch}
+.how b{color:var(--ink)}
+footer{font-size:13px;color:var(--muted);display:grid;gap:4px}
+footer a{color:var(--water)}
+.status{padding:30px 18px;text-align:center;color:var(--muted);font-weight:600}
+.status.err{color:var(--poor)}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="in">
+    <div class="bar">
+      <div class="brand">
+        <svg viewBox="0 0 30 38" aria-hidden="true"><line x1="15" y1="0" x2="15" y2="8" stroke="var(--on-water)" stroke-width="1.5"/><path d="M15 8a9 9 0 0 1 9 9H6a9 9 0 0 1 9-9z" fill="var(--bobber)"/><path d="M6 17h18a9 9 0 0 1-18 0z" fill="var(--on-water)"/><rect x="13.5" y="26" width="3" height="6" rx="1" fill="var(--on-water)"/></svg>
+        Bite Window
+      </div>
+      <div class="controls">
+        <form class="search" id="searchForm" role="search" autocomplete="off">
+          <input id="q" type="search" placeholder="Where are you fishing?" aria-label="Search a place">
+          <button class="pill go" type="submit">Find</button>
+          <div class="results" id="results" hidden></div>
+        </form>
+        <button class="pill" id="geoBtn" type="button">📍 Near me</button>
+        <button class="pill go" id="installBtn" type="button" hidden>⬇ Install app</button>
+        <div class="units" role="group" aria-label="Units">
+          <button type="button" data-u="metric" title="°C, km/h, metres">°C</button>
+          <button type="button" data-u="marine" title="°C, knots, metres">Knots</button>
+          <button type="button" data-u="imperial" title="°F, mph, feet">°F</button>
+        </div>
+      </div>
+    </div>
+    <div class="place">
+      <h1 id="placeName">Loading…</h1>
+      <p id="placeMeta"></p>
+    </div>
+  </div>
+  <svg class="wave" viewBox="0 0 1200 44" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22C150 2 250 2 400 22S650 42 800 22 1050 2 1200 22V44H0Z" fill="var(--bg)"/></svg>
+</header>
+
+<main class="in">
+  <div id="status" class="status card">Checking the water…</div>
+  <div id="offline" class="offline" hidden></div>
+
+  <section class="card verdict" id="verdict" hidden>
+    <svg class="bob" id="bob" viewBox="0 0 84 120" aria-hidden="true">
+      <path d="M0 92q10.5-6 21 0t21 0 21 0 21 0V120H0z" fill="var(--sea-soft)"/>
+      <g class="float">
+        <line x1="42" y1="0" x2="42" y2="44" stroke="var(--muted)" stroke-width="1.5"/>
+        <path d="M42 44a16 16 0 0 1 16 16H26a16 16 0 0 1 16-16z" fill="var(--bobber)"/>
+        <path d="M26 60h32a16 16 0 0 1-32 0z" fill="var(--card)" stroke="var(--line)" stroke-width="1.5"/>
+        <rect x="39.5" y="76" width="5" height="10" rx="2" fill="var(--muted)"/>
+      </g>
+      <path d="M8 96q8-5 16 0M60 96q8-5 16 0" stroke="var(--water)" stroke-width="2" fill="none" stroke-linecap="round" opacity=".6"/>
+    </svg>
+    <div>
+      <div class="v-eyebrow">Should I go fishing right now?</div>
+      <h2 class="v-title" id="vTitle"></h2>
+      <div id="vRate"></div>
+      <p class="v-text" id="vText" style="margin-top:10px"></p>
+      <div class="v-next" id="vNext" hidden></div>
+    </div>
+  </section>
+
+  <section class="alerts" id="alerts" hidden></section>
+
+  <section id="bestSec" hidden>
+    <div class="sh"><h2>Best times to fish</h2><p>Next two days</p></div>
+    <div class="best" id="best"></div>
+  </section>
+
+  <section id="condSec" hidden>
+    <div class="sh"><h2>On the water now</h2><p id="condTime"></p></div>
+    <div class="conds" id="conds"></div>
+  </section>
+
+  <section id="tipSec" hidden>
+    <div class="sh"><h2>Tips for today</h2><p>Based on the conditions</p></div>
+    <div class="tips" id="tips"></div>
+  </section>
+
+  <section id="tideSec" hidden>
+    <div class="sh"><h2>Tides</h2><p>Moving water usually means feeding fish</p></div>
+    <div class="tidesum" id="tideSum"></div>
+    <div class="scroll" id="tide"></div>
+  </section>
+
+  <section id="weekSec" hidden>
+    <div class="sh"><h2>This week</h2><p>Tap “More details” for full numbers</p></div>
+    <div class="week" id="week"></div>
+  </section>
+
+  <details class="more" id="moreSec" hidden>
+    <summary>More details</summary>
+    <div class="body">
+      <div>
+        <h3>Hour by hour</h3>
+        <div class="scroll" id="timeline"></div>
+        <div class="legend">
+          <span><i style="background:var(--exc)"></i>5 fish</span>
+          <span><i style="background:var(--good)"></i>4 fish</span>
+          <span><i style="background:var(--fair)"></i>3 fish</span>
+          <span><i style="background:var(--poor)"></i>1–2 fish</span>
+          <span><i style="background:var(--sea-soft);outline:1px solid var(--water)"></i>Moon feeding time</span>
+          <span><i style="background:var(--night);outline:1px solid var(--line)"></i>Night</span>
+          <span>Dark line: air pressure</span>
+        </div>
+      </div>
+      <div>
+        <h3>Full 7-day numbers</h3>
+        <div class="tbl"><table>
+          <thead><tr><th>Day</th><th>Score</th><th>Weather</th><th>Air</th><th>Wind</th><th>Pressure</th><th>Moon</th><th>Major feeding</th><th>Minor feeding</th><th>Sun</th></tr></thead>
+          <tbody id="days"></tbody>
+        </table></div>
+      </div>
+      <div>
+        <h3>How the fish rating works</h3>
+        <div class="how">
+          <p><b>Air pressure.</b> Slowly falling pressure before a front is the best sign. A fast rise after a front usually makes fish go quiet.</p>
+          <p><b>Moon feeding times.</b> Major times are about 2 hours around when the moon is overhead or underfoot. Minor times are about 1 hour around moonrise and moonset.</p>
+          <p><b>Light.</b> Dawn and dusk are best. Cloudy days help. Bright midday sun pushes fish deeper.</p>
+          <p><b>Wind, rain and waves.</b> A light breeze and light rain help. Strong wind, storms and rough seas lower the rating and show a safety warning.</p>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <footer id="foot" hidden>
+    <span id="srcLine"></span>
+    <span>Weather, waves, water temperature and tides from <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>. Moon times are worked out in the page. Always check official marine warnings and tide tables before going out on a boat.</span>
+  </footer>
+</main>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store={get(k){try{return JSON.parse(localStorage.getItem("bw:"+k))}catch(e){return null}},set(k,v){try{localStorage.setItem("bw:"+k,JSON.stringify(v))}catch(e){}}};
+const S={units:store.get("units")||"metric",loc:store.get("loc")||{name:"Beirut",sub:"Beirut, Lebanon",lat:33.8938,lon:35.5018},raw:null};
+
+/* ---------- units ---------- */
+const U={
+  temp:c=>c==null?"—":S.units==="imperial"?Math.round(c*9/5+32):Math.round(c),
+  tU:()=>S.units==="imperial"?"°F":"°C",
+  spd:k=>k==null?"—":Math.round(S.units==="imperial"?k/1.609:S.units==="marine"?k/1.852:k),
+  sU:()=>S.units==="imperial"?"mph":S.units==="marine"?"knots":"km/h",
+  len:m=>m==null?"—":S.units==="imperial"?(m*3.281).toFixed(1):m.toFixed(1),
+  lU:()=>S.units==="imperial"?"ft":"m",
+  pres:h=>h==null?"—":S.units==="imperial"?(h*0.02953).toFixed(2):Math.round(h),
+  pU:()=>S.units==="imperial"?"inHg":"hPa",
+  dp:h=>S.units==="imperial"?(h*0.02953).toFixed(2):h.toFixed(1)
+};
+
+/* ---------- time in the location's own clock ---------- */
+let OFF=0;
+function epoch(str){const[d,t="00:00"]=str.split("T");const[Y,M,D]=d.split("-").map(Number);const[h,m]=t.split(":").map(Number);return Date.UTC(Y,M-1,D,h,m)-OFF*1000}
+function L(ms){return new Date(ms+OFF*1000)}
+function hm(ms){const d=L(ms);let h=d.getUTCHours(),m=String(d.getUTCMinutes()).padStart(2,"0");
+  if(S.units==="imperial"){const ap=h<12?" am":" pm";h=h%12||12;return h+":"+m+ap}return String(h).padStart(2,"0")+":"+m}
+function hh(ms){const h=L(ms).getUTCHours();return S.units==="imperial"?(h%12||12)+(h<12?"a":"p"):String(h).padStart(2,"0")}
+const DOW=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function dayName(ms,long){const d=L(ms);return DOW[d.getUTCDay()].slice(0,3)+(long?" "+d.getUTCDate()+" "+MON[d.getUTCMonth()]:"")}
+function relDay(ms){const k=Math.round((L(ms).setUTCHours(0,0,0,0)-L(Date.now()).setUTCHours(0,0,0,0))/864e5);return k===0?"Today":k===1?"Tomorrow":DOW[L(ms).getUTCDay()]}
+
+/* ---------- moon (after V. Agafonkin's SunCalc formulas) ---------- */
+const RAD=Math.PI/180,OBL=RAD*23.4397;
+const toDays=ms=>ms/864e5-0.5+2440588-2451545;
+const raF=(l,b)=>Math.atan2(Math.sin(l)*Math.cos(OBL)-Math.tan(b)*Math.sin(OBL),Math.cos(l));
+const decF=(l,b)=>Math.asin(Math.sin(b)*Math.cos(OBL)+Math.cos(b)*Math.sin(OBL)*Math.sin(l));
+function sunC(d){const M=RAD*(357.5291+0.98560028*d),C=RAD*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M)),Lg=M+C+RAD*102.9372+Math.PI;return{ra:raF(Lg,0),dec:decF(Lg,0)}}
+function moonC(d){const Lm=RAD*(218.316+13.176396*d),M=RAD*(134.963+13.064993*d),F=RAD*(93.272+13.229350*d);const l=Lm+RAD*6.289*Math.sin(M),b=RAD*5.128*Math.sin(F);return{ra:raF(l,b),dec:decF(l,b),dist:385001-20905*Math.cos(M)}}
+function moonAlt(ms,lat,lon){const d=toDays(ms),c=moonC(d),H=RAD*(280.16+360.9856235*d)+RAD*lon-c.ra,phi=RAD*lat;
+  const h=Math.asin(Math.sin(phi)*Math.sin(c.dec)+Math.cos(phi)*Math.cos(c.dec)*Math.cos(H)),hr=Math.max(h,0);return h+0.0002967/Math.tan(hr+0.00312536/(hr+0.08901179))}
+function moonIllum(ms){const d=toDays(ms),s=sunC(d),m=moonC(d),sd=149598000;
+  const phi=Math.acos(Math.sin(s.dec)*Math.sin(m.dec)+Math.cos(s.dec)*Math.cos(m.dec)*Math.cos(s.ra-m.ra));
+  const inc=Math.atan2(sd*Math.sin(phi),m.dist-sd*Math.cos(phi));
+  const ang=Math.atan2(Math.cos(s.dec)*Math.sin(s.ra-m.ra),Math.sin(s.dec)*Math.cos(m.dec)-Math.cos(s.dec)*Math.sin(m.dec)*Math.cos(s.ra-m.ra));
+  return{fraction:(1+Math.cos(inc))/2,phase:0.5+0.5*inc*(ang<0?-1:1)/Math.PI}}
+function phaseName(p){const t=0.034;if(p<t||p>1-t)return"New moon";if(Math.abs(p-.25)<t)return"First quarter";if(Math.abs(p-.5)<t)return"Full moon";if(Math.abs(p-.75)<t)return"Last quarter";
+  return p<.25?"Waxing crescent":p<.5?"Waxing gibbous":p<.75?"Waning gibbous":"Waning crescent"}
+function moonSvg(p,size){const r=size/2-1,c=size/2,k=Math.cos(2*Math.PI*p),rx=Math.abs(k)*r,wax=p<.5,outer=wax?1:0,inner=wax?(k>0?0:1):(k>0?1:0);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${c}" cy="${c}" r="${r}" fill="var(--ink)" fill-opacity=".16" stroke="var(--muted)" stroke-width=".6"/>`+
+   `<path d="M${c} ${c-r}A${r} ${r} 0 0 ${outer} ${c} ${c+r}A${rx} ${r} 0 0 ${inner} ${c} ${c-r}Z" fill="var(--gold)"/></svg>`}
+function solunarDay(start,lat,lon){const step=6e5,n=144,a=[],ev=[],h0=0.133*RAD;
+  for(let i=-1;i<=n+1;i++)a.push(moonAlt(start+i*step,lat,lon));
+  const t=k=>start+(k-1)*step;
+  for(let k=1;k<=n;k++){
+    const isMax=a[k]>a[k-1]&&a[k]>=a[k+1],isMin=a[k]<a[k-1]&&a[k]<=a[k+1];
+    if(isMax||isMin){const den=a[k-1]-2*a[k]+a[k+1],off=den?0.5*(a[k-1]-a[k+1])/den:0;ev.push({type:"major",kind:isMax?"Moon overhead":"Moon underfoot",t:t(k)+off*step})}
+    const y0=a[k]-h0,y1=a[k+1]-h0;
+    if((y0<0&&y1>=0)||(y0>=0&&y1<0))ev.push({type:"minor",kind:y0<0?"Moonrise":"Moonset",t:t(k)+step*(y0/(y0-y1))});
+  }
+  return ev.filter(e=>e.t>=start&&e.t<start+864e5).sort((x,y)=>x.t-y.t)}
+
+/* ---------- words & icons ---------- */
+const WC={0:"Clear",1:"Mostly clear",2:"Partly cloudy",3:"Cloudy",45:"Foggy",48:"Freezing fog",51:"Light drizzle",53:"Drizzle",55:"Heavy drizzle",56:"Freezing drizzle",57:"Freezing drizzle",
+ 61:"Light rain",63:"Rain",65:"Heavy rain",66:"Freezing rain",67:"Freezing rain",71:"Light snow",73:"Snow",75:"Heavy snow",77:"Snow",80:"Showers",81:"Showers",82:"Heavy showers",
+ 85:"Snow showers",86:"Heavy snow",95:"Thunderstorm",96:"Thunderstorm & hail",99:"Thunderstorm & hail"};
+const CARD=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const card=d=>d==null?"":CARD[Math.round(((d%360)+360)%360/22.5)%16];
+const windWord=k=>k==null?"—":k<3?"Calm":k<12?"Light breeze":k<20?"Gentle breeze":k<29?"Breezy":k<39?"Windy":k<50?"Strong wind":"Gale";
+const waveWord=m=>m<0.3?"Calm sea":m<0.8?"Small waves":m<1.5?"Moderate waves":m<2.5?"Rough sea":"Very rough sea";
+const waterWord=c=>c<10?"Cold water":c<18?"Cool water":c<24?"Mild water":c<28?"Warm water":"Very warm water";
+function wxIcon(code,day=true,cls="wx"){
+  const sun=`<circle cx="12" cy="12" r="4.5" fill="var(--gold)"/><g stroke="var(--gold)" stroke-width="2" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>{const r=a*RAD;return`<line x1="${12+7*Math.cos(r)}" y1="${12+7*Math.sin(r)}" x2="${12+9.5*Math.cos(r)}" y2="${12+9.5*Math.sin(r)}"/>`}).join("")}</g>`;
+  const moon=`<path d="M15 4a8 8 0 1 0 5 13A7 7 0 0 1 15 4z" fill="var(--gold)"/>`;
+  const cloud=(y=0,c="var(--muted)")=>`<path d="M7 ${19+y}h10a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.4-1.6A4 4 0 0 0 7 ${19+y}z" fill="${c}"/>`;
+  let g;
+  if(code<=1)g=day?sun:moon;
+  else if(code===2)g=`<g transform="translate(-3 -3) scale(.75)">${day?sun:moon}</g>`+cloud(1);
+  else if(code===3)g=cloud(-1);
+  else if(code===45||code===48)g=`<g stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><line x1="4" y1="8" x2="20" y2="8"/><line x1="2" y1="12" x2="18" y2="12"/><line x1="6" y1="16" x2="22" y2="16"/></g>`;
+  else if(code>=95)g=cloud(-4)+`<path d="M12 15l-3 5h3l-2 4 5-6h-3l2-3z" fill="var(--bobber)"/>`;
+  else if((code>=71&&code<=77)||code===85||code===86)g=cloud(-4)+`<g fill="var(--water)"><circle cx="8" cy="20" r="1.3"/><circle cx="12" cy="22" r="1.3"/><circle cx="16" cy="20" r="1.3"/></g>`;
+  else g=cloud(-4)+`<g stroke="var(--water)" stroke-width="2" stroke-linecap="round"><line x1="8" y1="18" x2="7" y2="22"/><line x1="12" y1="18" x2="11" y2="22"/><line x1="16" y1="18" x2="15" y2="22"/></g>`;
+  return`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${g}</svg>`}
+const IC={
+  wind:d=>`<svg viewBox="0 0 24 24" aria-hidden="true"><g style="transform:rotate(${(d??0)+180}deg);transform-origin:12px 12px"><path d="M12 2l6 18-6-4-6 4z" fill="var(--water)"/></g></svg>`,
+  water:`<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="10" y="3" width="4" height="13" rx="2" fill="none" stroke="var(--water)" stroke-width="2"/><circle cx="12" cy="18" r="3.5" fill="var(--bobber)"/><path d="M2 21q2.5-2 5 0t5 0 5 0 5 0" stroke="var(--water)" stroke-width="1.6" fill="none"/></svg>`,
+  wave:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 10q2.5-3 5 0t5 0 5 0 5 0M2 16q2.5-3 5 0t5 0 5 0 5 0" stroke="var(--water)" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>`,
+  gauge:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16a9 9 0 0 1 18 0" stroke="var(--water)" stroke-width="2.2" fill="none" stroke-linecap="round"/><line x1="12" y1="16" x2="16" y2="9" stroke="var(--bobber)" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="16" r="2" fill="var(--ink)"/></svg>`,
+  sun:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17a7 7 0 0 1 14 0z" fill="var(--gold)"/><line x1="2" y1="19" x2="22" y2="19" stroke="var(--water)" stroke-width="2" stroke-linecap="round"/><path d="M12 3v4M5 7l2 2M19 7l-2 2" stroke="var(--gold)" stroke-width="2" stroke-linecap="round"/></svg>`,
+  hook:`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2v12a5 5 0 0 1-10 0v-2l3 3" stroke="var(--water)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="14" cy="3" r="1.6" fill="var(--bobber)"/></svg>`,
+  warn:`<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" style="flex:none"><path d="M12 2l11 20H1z" fill="var(--poor)"/><rect x="11" y="9" width="2" height="7" fill="var(--card)"/><rect x="11" y="18" width="2" height="2" fill="var(--card)"/></svg>`
+};
+
+/* ---------- fish rating ---------- */
+const FISH_PATH="M1 10c3.5-5 9-6.5 14-3.5l6-4-1.8 7.5 1.8 7.5-6-4C10 16.5 4.5 15 1 10z";
+function fishN(s){return s>=72?5:s>=58?4:s>=42?3:s>=28?2:1}
+const FISH_WORD=["","Poor","Slow","Fair","Good","Excellent"];
+const FISH_COL=["","var(--poor)","var(--poor)","var(--fair)","var(--good)","var(--exc)"];
+function band(s){const n=fishN(s);return[FISH_WORD[n],FISH_COL[n]]}
+function fishRow(s,sm,word=true){const n=fishN(s);let h=`<span class="fishes${sm?" sm":""}" role="img" aria-label="${n} out of 5 fish, ${FISH_WORD[n]}">`;
+  for(let i=1;i<=5;i++)h+=`<svg viewBox="0 0 22 20" aria-hidden="true"><path d="${FISH_PATH}" fill="${i<=n?FISH_COL[n]:"var(--line)"}"/>${i<=n?'<circle cx="6" cy="9" r="1.2" fill="var(--card)"/>':""}</svg>`;
+  return h+`</span>${word?`<span class="rate-word" style="color:${FISH_COL[n]}">${FISH_WORD[n]}</span>`:""}`}
+
+/* plain-language reason for each scoring factor */
+const SAY={
+  "Moon feeding time (major)":"it's a major moon feeding time",
+  "Moon feeding time (minor)":"it's a minor moon feeding time",
+  "Dawn":"it's dawn, a prime feeding time","Dusk":"it's dusk, a prime feeding time",
+  "Night":"it's dark, so most fish are less active",
+  "Bright sun":"the sun is bright, so fish hide deeper",
+  "Cloudy light":"cloud cover keeps the light soft",
+  "Pressure dropping fast":"pressure is dropping fast, a storm may be coming",
+  "Pressure falling":"air pressure is falling, which gets fish feeding",
+  "Pressure steady":"the weather is steady",
+  "Pressure rising":"pressure is rising slowly",
+  "Pressure jumping after a front":"pressure is jumping after a front, fish often go quiet",
+  "High pressure":"high pressure and clear skies can make fish lazy",
+  "Flat calm":"the water is flat calm, so fish spook easily",
+  "Light breeze":"a light breeze is rippling the water",
+  "Fresh wind":"it's getting windy","Strong wind":"the wind is strong","Gale":"the wind is dangerously strong",
+  "Big gusts":"there are big gusts",
+  "Thunderstorms":"there are thunderstorms around",
+  "Heavy rain":"it's raining hard","Light rain":"light rain is stirring the surface",
+  "Rough sea":"the sea is rough","Choppy sea":"the sea is choppy",
+  "Near new moon":"it's close to new moon","Near full moon":"it's close to full moon"
+};
+
+function dangerAt(h){return h.code>=95||(h.g!=null&&h.g>=50)||(h.w!=null&&h.w>=39)||(h.wave!=null&&h.wave>=2.5)}
+
+/* ---------- build model ---------- */
+function build(fc,mr){
+  OFF=fc.utc_offset_seconds;
+  const H=fc.hourly,T=H.time.map(epoch),N=T.length;
+  const mIdx={};if(mr&&mr.hourly)mr.hourly.time.forEach((s,i)=>mIdx[s]=i);
+  const mv=(k,i)=>{if(!mr||!mr.hourly||!mr.hourly[k])return null;const j=mIdx[H.time[i]];return j==null?null:mr.hourly[k][j]};
+  const D=fc.daily,days=D.time.map((s,i)=>({date:s,start:epoch(s+"T00:00"),rise:D.sunrise[i]?epoch(D.sunrise[i]):null,set:D.sunset[i]?epoch(D.sunset[i]):null,i}));
+  const dayOf={};days.forEach(d=>dayOf[d.date]=d);
+  const lat=fc.latitude,lon=fc.longitude;
+  days.forEach(d=>{d.sol=solunarDay(d.start,lat,lon);d.moon=moonIllum(d.start+12*36e5)});
+  const periods=[];days.forEach(d=>d.sol.forEach(e=>{const half=e.type==="major"?36e5:18e5;periods.push({...e,start:e.t-half,end:e.t+half})}));
+  const hours=[];
+  for(let i=0;i<N;i++){
+    const t=T[i],mid=t+18e5,f=[];let s=44;const add=(p,l)=>{if(p){s+=p;f.push([p,l])}};
+    const day=dayOf[H.time[i].slice(0,10)];
+    const p=H.pressure_msl[i],dp=i>=3&&H.pressure_msl[i-3]!=null&&p!=null?p-H.pressure_msl[i-3]:null;
+    const w=H.wind_speed_10m[i],g=H.wind_gusts_10m[i],pr=H.precipitation[i]||0,code=H.weather_code[i],cl=H.cloud_cover[i],uv=H.uv_index?H.uv_index[i]:null;
+    const wave=mv("wave_height",i);
+    const sp=periods.filter(q=>mid>=q.start&&mid<q.end);
+    if(sp.some(q=>q.type==="major"))add(15,"Moon feeding time (major)");else if(sp.length)add(8,"Moon feeding time (minor)");
+    if(day&&day.rise&&day.set){
+      if(Math.abs(mid-day.rise)<=75*6e4)add(12,"Dawn");
+      else if(Math.abs(mid-day.set)<=75*6e4)add(12,"Dusk");
+      else if(mid<day.rise||mid>day.set)add(-3,"Night");
+      else if(cl!=null&&cl<25&&uv!=null&&uv>=6)add(-6,"Bright sun");
+      else if(cl!=null&&cl>=70)add(4,"Cloudy light");
+    }
+    if(dp!=null){
+      if(dp<=-3)add(4,"Pressure dropping fast");
+      else if(dp<=-0.8)add(16,"Pressure falling");
+      else if(dp<0.8)add(5,"Pressure steady");
+      else if(dp<2)add(-3,"Pressure rising");
+      else add(-10,"Pressure jumping after a front");
+    }
+    if(p!=null&&p>=1026&&dp!=null&&Math.abs(dp)<0.8)add(-4,"High pressure");
+    if(w!=null){if(w<4)add(-2,"Flat calm");else if(w<=20)add(6,"Light breeze");else if(w<=30)add(-4,"Fresh wind");else if(w<40)add(-12,"Strong wind");else add(-22,"Gale")}
+    if(g!=null&&g>=50)add(-8,"Big gusts");
+    if(code>=95)add(-30,"Thunderstorms");else if(pr>4)add(-8,"Heavy rain");else if(pr>=0.1)add(3,"Light rain");
+    if(wave!=null){if(wave>=3)add(-20,"Rough sea");else if(wave>=2)add(-10,"Choppy sea")}
+    const ph=moonIllum(mid).phase,dn=Math.min(ph,1-ph)*29.53,df=Math.abs(ph-.5)*29.53;
+    if(dn<=1.5)add(6,"Near new moon");else if(df<=1.5)add(6,"Near full moon");
+    hours.push({i,t,score:Math.max(0,Math.min(100,Math.round(s))),f,p,dp,w,g,wd:H.wind_direction_10m[i],code,pr,pp:H.precipitation_probability?H.precipitation_probability[i]:null,
+      temp:H.temperature_2m[i],feel:H.apparent_temperature[i],cl,uv,vis:H.visibility?H.visibility[i]:null,isDay:day&&day.rise?(mid>day.rise&&mid<day.set):true,
+      wave,wp:mv("wave_period",i),wdir:mv("wave_direction",i),sst:mv("sea_surface_temperature",i),sl:mv("sea_level_height_msl",i),day:day&&day.date,sol:sp});
+  }
+  const now=Date.now();let cur=hours.findIndex(h=>now>=h.t&&now<h.t+36e5);if(cur<0)cur=hours.findIndex(h=>h.t>now);if(cur<0)cur=0;
+  return{hours,cur,days,periods,fc,mr};
+}
+
+function findWindows(hs,max=3){
+  const used=new Set(),runs=[],order=hs.map((h,k)=>k).sort((a,b)=>hs[b].score-hs[a].score);
+  for(const k of order){
+    if(runs.length>=max)break;if(used.has(k)||dangerAt(hs[k]))continue;
+    const pk=hs[k],floor=Math.max(pk.score-8,Math.min(55,pk.score));let a=k,b=k;
+    while(b-a<3){const l=a-1,r=b+1,okL=l>=0&&!used.has(l)&&hs[l].score>=floor&&!dangerAt(hs[l]),okR=r<hs.length&&!used.has(r)&&hs[r].score>=floor&&!dangerAt(hs[r]);
+      if(!okL&&!okR)break;if(okL&&(!okR||hs[l].score>=hs[r].score))a=l;else b=r}
+    for(let j=Math.max(0,a-2);j<=Math.min(hs.length-1,b+2);j++)used.add(j);
+    runs.push({hs:hs.slice(a,b+1),peak:pk,start:hs[a].t,end:hs[b].t+36e5});
+  }
+  return runs.sort((a,b)=>b.peak.score-a.peak.score||a.start-b.start);
+}
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function joinAnd(a){return a.length<2?a.join(""):a.slice(0,-1).join(", ")+" and "+a[a.length-1]}
+
+/* ---------- render ---------- */
+function renderAll(){
+  const M=S.raw;if(!M)return;
+  const{hours,cur,days,fc}=M,h=hours[cur],c=fc.current||{};
+  document.querySelectorAll(".units button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.u===S.units));
+  $("#placeName").textContent=S.loc.name;
+  $("#placeMeta").textContent=`${S.loc.sub?S.loc.sub+" · ":""}Local time ${hm(Date.now())}`;
+
+  /* verdict */
+  const n=fishN(h.score),danger=dangerAt(h),next48=hours.slice(cur,cur+48),wins=findWindows(next48);
+  const title=danger?"Not safe right now":n>=5?"Yes! Great time to fish":n===4?"Yes, good time to fish":n===3?"Okay, worth a try":"Fish are slow right now";
+  $("#vTitle").textContent=title;$("#vTitle").style.color=danger?"var(--poor)":"";
+  $("#vRate").innerHTML=fishRow(h.score);
+  const pos=h.f.filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]).map(x=>SAY[x[1]]).filter(Boolean).slice(0,3);
+  const neg=h.f.filter(x=>x[0]<0).sort((a,b)=>a[0]-b[0]).map(x=>SAY[x[1]]).filter(Boolean).slice(0,2);
+  let txt=pos.length?cap(joinAnd(pos))+".":"Nothing special is helping the bite right now.";
+  if(neg.length)txt+=" But "+joinAnd(neg)+".";
+  $("#vText").textContent=txt;
+  $("#bob").classList.toggle("bite",n>=4&&!danger);
+  const soon=wins.filter(w=>w.start>h.t&&fishN(w.peak.score)>Math.min(n,4)).sort((a,b)=>a.start-b.start)[0];
+  const best=wins.find(w=>w.start<=h.t&&w.end>h.t);
+  if(soon&&(n<4||danger)){$("#vNext").hidden=false;$("#vNext").innerHTML=`Better soon: <b>${relDay(soon.start)} ${hm(soon.start)} – ${hm(soon.end)}</b> ${fishRow(soon.peak.score,true,false)}`}
+  else if(best&&best.start<=h.t&&best.end>h.t){$("#vNext").hidden=false;$("#vNext").innerHTML=`This good spell lasts until <b>${hm(best.end)}</b>`}
+  else $("#vNext").hidden=true;
+
+  /* alerts */
+  const nx=hours.slice(cur,cur+24),al=[];let a;
+  const at=x=>`${relDay(x.t).toLowerCase()==="today"?"today":relDay(x.t)} from about ${hm(x.t)}`;
+  if(a=nx.find(x=>x.code>=95))al.push(`<b>Thunderstorms</b> ${at(a)}. Get off the water and put fishing rods down when you hear thunder.`);
+  if(a=nx.find(x=>x.g!=null&&x.g>=50))al.push(`<b>Strong gusts up to ${U.spd(Math.max(...nx.map(x=>x.g||0)))} ${U.sU()}</b> ${at(a)}. Small boats should stay in.`);
+  else if(a=nx.find(x=>x.w!=null&&x.w>=39))al.push(`<b>Strong wind of ${U.spd(a.w)} ${U.sU()}</b> ${at(a)}. Not safe for small boats.`);
+  if(a=nx.find(x=>x.wave!=null&&x.wave>=2.5))al.push(`<b>Rough sea, waves up to ${U.len(Math.max(...nx.map(x=>x.wave||0)))} ${U.lU()}</b> ${at(a)}. Keep off rocks and jetties.`);
+  if(a=nx.find(x=>x.vis!=null&&x.vis<1000))al.push(`<b>Thick fog</b> ${at(a)}. You may not be able to see far on the water.`);
+  $("#alerts").hidden=!al.length;$("#alerts").innerHTML=al.map(x=>`<div class="alert">${IC.warn}<div>${x}</div></div>`).join("");
+
+  /* best times */
+  $("#best").innerHTML=wins.map((r,k)=>{
+    const why=r.peak.f.filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]).slice(0,2).map(x=>SAY[x[1]]).filter(Boolean);
+    return`<article class="card bt${k===0?" top":""}">${k===0?'<span class="tag">Best bet</span>':""}
+      <div class="day">${relDay(r.start)}</div>
+      <div class="time num">${hm(r.start)} – ${hm(r.end)}</div>
+      <div>${fishRow(r.peak.score,true)}</div>
+      <div class="why">${why.length?cap(joinAnd(why))+".":"Calmest stretch coming up."}</div>
+      <div class="why" style="color:var(--muted)">${U.temp(r.peak.temp)}${U.tU()} · ${windWord(r.peak.w).toLowerCase()} ${U.spd(r.peak.w)} ${U.sU()}${r.peak.wave!=null?" · "+waveWord(r.peak.wave).toLowerCase():""}</div></article>`}).join("");
+
+  /* conditions */
+  const temp=c.temperature_2m??h.temp,wind=c.wind_speed_10m??h.w,gust=c.wind_gusts_10m??h.g,wd=c.wind_direction_10m??h.wd,pres=c.pressure_msl??h.p,code=c.weather_code??h.code;
+  const today=days.find(d=>d.date===h.day)||days[0],mo=moonIllum(Date.now());
+  const nextSol=M.periods.filter(q=>q.end>Date.now()).sort((a,b)=>a.t-b.t).slice(0,2);
+  const pWord=h.dp==null?"Steady":h.dp<=-0.8?"Falling":h.dp>=0.8?"Rising":"Steady";
+  const pTip=pWord==="Falling"?"Good sign, fish get active":pWord==="Rising"?"Fish may slow down":"Normal bite";
+  const sunTxt=today.rise&&today.set?(Date.now()<today.rise?`Sunrise ${hm(today.rise)}`:Date.now()<today.set?`Sunset ${hm(today.set)}`:`Sunrise ${hm(days[days.indexOf(today)+1]?.rise||today.rise)}`):"—";
+  const conds=[
+    ["Weather",wxIcon(code,h.isDay,""),`${WC[code]||"—"}`,`${U.temp(temp)}${U.tU()} · rain chance ${h.pp??0}%`],
+    ["Wind",IC.wind(wd),windWord(wind),`${U.spd(wind)} ${U.sU()} from ${card(wd)} · gusts ${U.spd(gust)}`],
+    h.sst!=null?["Water",IC.water,waterWord(h.sst),`${U.temp(h.sst)}${U.tU()} at the surface`]:null,
+    h.wave!=null?["Sea",IC.wave,waveWord(h.wave),`Waves ${U.len(h.wave)} ${U.lU()}${h.wp!=null?", every "+Math.round(h.wp)+" s":""}`]:null,
+    ["Air pressure",IC.gauge,pWord,`${U.pres(pres)} ${U.pU()} · ${pTip}`],
+    ["Moon",moonSvg(mo.phase,28),phaseName(mo.phase),nextSol.length?`Feeding ${nextSol.map(q=>q.start<=Date.now()?"now":hm(q.t)).join(", then ")}`:`${Math.round(mo.fraction*100)}% lit`],
+    ["Sun",IC.sun,sunTxt.split(" ")[0],sunTxt.split(" ").slice(1).join(" ")]
+  ].filter(Boolean);
+  $("#conds").innerHTML=conds.map(([k,ic,w,d])=>`<div class="card cd"><div class="ic">${ic}</div><div class="k">${k}</div><div class="w">${w}</div><div class="d">${d}</div></div>`).join("");
+  $("#condTime").textContent=`Updated ${hm(Date.now())}`;
+
+  /* tips */
+  const tips=[];const T=(t,d)=>tips.push([t,d]);
+  if(danger)T("Safety first","Conditions are rough right now. Fish from a sheltered shore or wait for the better time above.");
+  if(h.dp!=null&&h.dp<=-0.8)T("Fish are on the move","Falling pressure gets fish feeding. Try lures you can move fast and cover lots of water.");
+  else if(h.dp!=null&&h.dp>=2)T("Slow it down","After a front fish sit tight. Use smaller baits, fish slowly, and stay close to cover.");
+  if(h.isDay&&h.cl!=null&&h.cl<25&&h.uv>=5)T("Find the shade","Bright sun pushes fish deeper. Try deeper water, docks, rocks and weed edges.");
+  else if(h.isDay&&h.cl>=70)T("Low light helps","Cloudy skies bring fish shallower. Surface lures and shallow water can work well.");
+  if(wind!=null&&wind>=8&&wind<30)T("Use the wind",`Wind from the ${card(wd)} pushes food to the shore it blows toward. Fish that side.`);
+  else if(wind!=null&&wind<4)T("Stay quiet","Flat water means fish see and hear more. Use lighter line and cast further away.");
+  if(h.sst!=null&&h.sst<12)T("Cold water","Fish are sluggish. Fish slowly and close to the bottom.");
+  else if(h.sst!=null&&h.sst>=26)T("Warm water","Fish feed most early and late. In the middle of the day go deeper.");
+  if(h.wave!=null&&h.wave>=1.2&&h.wave<2.5)T("Choppy water","Waves stir up food near the shore, but pick a safe, sheltered spot.");
+  if(today.rise&&Date.now()<today.rise)T("Be early",`Get to your spot by ${hm(today.rise-30*6e4)}, half an hour before sunrise.`);
+  else if(today.set&&Date.now()<today.set)T("Stay for sunset",`The last hour before sunset (${hm(today.set)}) is often the best of the day.`);
+  if(nextSol[0])T("Moon feeding time",`Next ${nextSol[0].type==="major"?"big":"short"} feeding time is ${nextSol[0].start<=Date.now()?"happening now":"at "+hm(nextSol[0].start)} to ${hm(nextSol[0].end)}.`);
+  $("#tips").innerHTML=tips.slice(0,4).map(([t,d])=>`<div class="card tip">${IC.hook}<div><b>${t}</b><span>${d}</span></div></div>`).join("");
+  $("#tipSec").hidden=!tips.length;
+
+  renderTide(hours.slice(cur,cur+72));
+  renderWeek();
+  renderTimeline(next48);
+  renderDays();
+  $("#srcLine").textContent=`Forecast fetched ${new Date().toLocaleString()}. Forecast point ${fc.latitude.toFixed(3)}°, ${fc.longitude.toFixed(3)}°.`;
+}
+
+function renderWeek(){
+  const{days,hours,fc}=S.raw,D=fc.daily,todayStr=hours[S.raw.cur].day;
+  $("#week").innerHTML=days.filter(d=>d.date>=todayStr).map(d=>{
+    const hs=hours.filter(h=>h.day===d.date);if(!hs.length)return"";
+    const top=hs.map(h=>h.score).sort((a,b)=>b-a).slice(0,6),sc=Math.round(top.reduce((a,b)=>a+b,0)/top.length);
+    const best=hs.filter(h=>!dangerAt(h)).reduce((a,b)=>!a||b.score>a.score?b:a,null),i=d.i,rel=relDay(d.start);
+    return`<div class="card wd${d.date===todayStr?" today":""}"><div class="n">${rel==="Today"||rel==="Tomorrow"?rel:rel.slice(0,3)}</div><div class="dt">${L(d.start).getUTCDate()} ${MON[L(d.start).getUTCMonth()]}</div>
+      ${wxIcon(D.weather_code[i])}<div class="t num">${U.temp(D.temperature_2m_max[i])}° <span>${U.temp(D.temperature_2m_min[i])}°</span></div>
+      ${fishRow(sc,true,false)}<div class="s"><b style="color:${band(sc)[1]}">${band(sc)[0]}</b><br>${windWord(D.wind_speed_10m_max[i])}<br>${best?"Best "+hm(best.t):"Stay in"}</div></div>`}).join("");
+}
+
+function renderTide(hs){
+  const pts=hs.filter(h=>h.sl!=null);
+  if(pts.length<12){$("#tideSec").hidden=true;return}
+  $("#tideSec").hidden=false;
+  const cw=16,top=30,ch=100,bot=26,x0=14,W=hs.length*cw+x0+14,Hh=top+ch+bot;
+  const vs=pts.map(h=>h.sl),mn=Math.min(...vs),mx=Math.max(...vs),pad=Math.max((mx-mn)*0.15,0.02),lo=mn-pad,hi=mx+pad;
+  const y=v=>top+ch-(v-lo)/(hi-lo)*ch,x=k=>x0+k*cw;
+  let g="";const ext=[];
+  const line=hs.map((h,k)=>h.sl==null?null:[x(k),y(h.sl)]).filter(Boolean);
+  g+=`<path d="M${line[0][0]},${top+ch}L${line.map(p=>p.join(",")).join("L")}L${line[line.length-1][0]},${top+ch}Z" fill="var(--sea-soft)"/>`;
+  g+=`<polyline points="${line.map(p=>p.join(",")).join(" ")}" fill="none" stroke="var(--water)" stroke-width="2.4" stroke-linejoin="round"/>`;
+  hs.forEach((h,k)=>{const lh=L(h.t).getUTCHours();
+    if(lh%6===0)g+=`<text x="${x(k)}" y="${top+ch+14}" text-anchor="middle">${hh(h.t)}</text>`;
+    if(lh===0&&k>0)g+=`<line x1="${x(k)}" x2="${x(k)}" y1="${top}" y2="${top+ch}" stroke="var(--muted)" stroke-width=".6"/><text class="t-strong" x="${x(k)+4}" y="${top+ch+24}">${dayName(h.t,true)}</text>`;
+    const a=hs[k-1],b=hs[k+1];
+    if(a&&b&&a.sl!=null&&b.sl!=null&&h.sl!=null){const isH=h.sl>a.sl&&h.sl>=b.sl,isL=h.sl<a.sl&&h.sl<=b.sl;
+      if(isH||isL){ext.push({t:h.t,hi:isH});const yy=y(h.sl);g+=`<circle cx="${x(k)}" cy="${yy}" r="3.5" fill="var(--water)"/><text class="t-strong" x="${x(k)}" y="${isH?yy-9:yy+17}" text-anchor="middle">${isH?"High":"Low"} ${hm(h.t)}</text>`}}
+  });
+  const nowX=x0+(Date.now()-hs[0].t)/36e5*cw;g+=`<line x1="${nowX}" x2="${nowX}" y1="${top-6}" y2="${top+ch}" stroke="var(--bobber)" stroke-width="2"/><text x="${nowX+4}" y="${top-8}" style="fill:var(--bobber);font-weight:700">now</text>`;
+  $("#tide").innerHTML=`<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Tide, next 3 days">${g}</svg>`;
+  const nh=ext.find(e=>e.hi),nl=ext.find(e=>!e.hi),rising=hs[1]&&hs[0].sl!=null&&hs[1].sl!=null&&hs[1].sl>hs[0].sl;
+  $("#tideSum").innerHTML=`<div><small>Right now</small>${rising?"Rising ↑":"Falling ↓"}</div>${nh?`<div><small>Next high</small>${relDay(nh.t)} ${hm(nh.t)}</div>`:""}${nl?`<div><small>Next low</small>${relDay(nl.t)} ${hm(nl.t)}</div>`:""}<div><small>Tide range</small>${U.len(mx-mn)} ${U.lU()}</div>`;
+}
+
+function renderTimeline(hs){
+  const cw=24,top=26,ch=140,bot=48,x0=10,W=hs.length*cw+x0+12,Hh=top+ch+bot;
+  const ps=hs.map(h=>h.p).filter(v=>v!=null),pmin=Math.floor(Math.min(...ps)-1),pmax=Math.ceil(Math.max(...ps)+1);
+  const py=p=>top+ch-(p-pmin)/(pmax-pmin)*ch,sy=s=>top+ch-s/100*ch;
+  const t0=hs[0].t,t1=hs[hs.length-1].t+36e5,tx=t=>x0+(t-t0)/36e5*cw;
+  let g="";
+  S.raw.days.forEach((d,k)=>{if(!d.rise||!d.set)return;const nd=S.raw.days[k+1];
+    [[d.start,d.rise],[d.set,nd&&nd.rise?nd.rise:d.start+864e5]].forEach(([a,b])=>{a=Math.max(a,t0);b=Math.min(b,t1);if(b>a)g+=`<rect x="${tx(a)}" y="${top}" width="${tx(b)-tx(a)}" height="${ch}" fill="var(--night)"/>`})});
+  S.raw.periods.forEach(q=>{const a=Math.max(q.start,t0),b=Math.min(q.end,t1);if(b<=a)return;
+    g+=`<rect x="${tx(a)}" y="${top}" width="${tx(b)-tx(a)}" height="${ch}" fill="var(--sea-soft)" ${q.type==="major"?'stroke="var(--water)" stroke-width=".8"':""}/>`;
+    if(q.t>=t0&&q.t<=t1)g+=`<text x="${tx(q.t)}" y="${top-8}" text-anchor="middle" style="fill:var(--water)">${q.type==="major"?"Major":"Minor"}</text>`});
+  hs.forEach((h,k)=>{const x=x0+k*cw,[bn,bc]=band(h.score);
+    g+=`<rect x="${x+3}" y="${sy(h.score)}" width="${cw-6}" height="${top+ch-sy(h.score)}" rx="3" fill="${bc}"><title>${dayName(h.t)} ${hm(h.t)}: ${fishN(h.score)} fish, ${bn}</title></rect>`;
+    const lh=L(h.t).getUTCHours();
+    if(lh%3===0)g+=`<text x="${x+cw/2}" y="${top+ch+14}" text-anchor="middle">${hh(h.t)}</text>`;
+    if(k%2===0&&h.w!=null)g+=`<g transform="translate(${x+cw/2} ${top+ch+28}) rotate(${(h.wd||0)+180})"><path d="M0 -6l3.5 10-3.5-2.4-3.5 2.4z" fill="var(--muted)"/></g>`;
+    if(lh===0||k===0)g+=`<line x1="${x}" x2="${x}" y1="${top-2}" y2="${top+ch+bot-4}" stroke="var(--muted)" stroke-width=".7"/><text class="t-strong" x="${x+4}" y="${top+ch+44}">${relDay(h.t)}</text>`;
+  });
+  const nx=tx(Date.now());if(nx>=x0)g+=`<line x1="${nx}" x2="${nx}" y1="${top}" y2="${top+ch}" stroke="var(--bobber)" stroke-width="2"/>`;
+  g+=`<polyline points="${hs.map((h,k)=>h.p==null?null:`${x0+k*cw+cw/2},${py(h.p)}`).filter(Boolean).join(" ")}" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round" opacity=".7"/>`;
+  $("#timeline").innerHTML=`<svg width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Hourly fish rating and pressure, next 48 hours">${g}</svg>`;
+}
+
+function renderDays(){
+  const{days,hours,fc}=S.raw,D=fc.daily,todayStr=hours[S.raw.cur].day;
+  $("#days").innerHTML=days.filter(d=>d.date>=todayStr).map(d=>{
+    const hs=hours.filter(h=>h.day===d.date);if(!hs.length)return"";
+    const top=hs.map(h=>h.score).sort((a,b)=>b-a).slice(0,6),sc=Math.round(top.reduce((a,b)=>a+b,0)/top.length);
+    const p0=hs[0].p,p1=hs[hs.length-1].p,pd=p1-p0,i=d.i;
+    const mj=d.sol.filter(e=>e.type==="major").map(e=>hm(e.t)).join(", ")||"—",mi=d.sol.filter(e=>e.type==="minor").map(e=>hm(e.t)).join(", ")||"—";
+    return`<tr><td><b>${dayName(d.start,true)}</b></td><td class="num">${sc}/100 <span class="sub">${band(sc)[0]}</span></td>
+      <td>${WC[D.weather_code[i]]||"—"}<div class="sub">${D.precipitation_probability_max[i]??0}% · ${S.units==="imperial"?(D.precipitation_sum[i]/25.4).toFixed(2)+" in":D.precipitation_sum[i].toFixed(1)+" mm"}</div></td>
+      <td class="num">${U.temp(D.temperature_2m_max[i])}° / ${U.temp(D.temperature_2m_min[i])}°</td>
+      <td class="num">${U.spd(D.wind_speed_10m_max[i])} ${U.sU()}<div class="sub">gust ${U.spd(D.wind_gusts_10m_max[i])}</div></td>
+      <td class="num">${U.pres(p0)} → ${U.pres(p1)}<div class="sub">${pd>0?"+":""}${U.dp(pd)} ${U.pU()}</div></td>
+      <td>${Math.round(d.moon.fraction*100)}%<div class="sub">${phaseName(d.moon.phase)}</div></td>
+      <td class="num">${mj}</td><td class="num">${mi}</td>
+      <td class="num">${d.rise?hm(d.rise):"—"}<div class="sub">${d.set?"set "+hm(d.set):""}</div></td></tr>`}).join("");
+}
+
+/* ---------- data ---------- */
+async function load(loc){
+  S.loc=loc;store.set("loc",loc);
+  $("#placeName").textContent=loc.name;
+  $("#status").hidden=false;$("#status").className="status card";$("#status").textContent=`Checking the water at ${loc.name}…`;
+  const q=`latitude=${loc.lat}&longitude=${loc.lon}&timezone=auto&forecast_days=7&past_days=1`;
+  const fcU=`https://api.open-meteo.com/v1/forecast?${q}&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,weather_code,pressure_msl,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,uv_index,visibility`+
+    `&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover`+
+    `&daily=sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max`;
+  const mrU=`https://marine-api.open-meteo.com/v1/marine?${q}&hourly=wave_height,wave_direction,wave_period,sea_surface_temperature,sea_level_height_msl`;
+  const show=(fr,mr)=>{
+    if(mr&&mr.hourly){const any=k=>(mr.hourly[k]||[]).some(v=>v!=null);if(!any("wave_height")&&!any("sea_surface_temperature")&&!any("sea_level_height_msl"))mr.hourly=null}
+    S.raw=build(fr,mr);
+    $("#status").hidden=true;["#verdict","#bestSec","#condSec","#weekSec","#moreSec","#foot"].forEach(s=>$(s).hidden=false);
+    renderAll();
+  };
+  const key=`fc:${(+loc.lat).toFixed(3)},${(+loc.lon).toFixed(3)}`;
+  try{
+    const[fr,mr]=await Promise.all([fetch(fcU).then(r=>r.ok?r.json():Promise.reject(new Error("the weather service returned "+r.status))),fetch(mrU).then(r=>r.ok?r.json():null).catch(()=>null)]);
+    store.set("last",{key,at:Date.now(),fr,mr});
+    S.fetchedAt=Date.now();$("#offline").hidden=true;
+    show(fr,mr);
+  }catch(e){
+    const saved=store.get("last");
+    if(saved&&saved.key===key&&Date.now()-saved.at<6*864e5){
+      S.fetchedAt=saved.at;show(saved.fr,saved.mr);
+      const age=Math.round((Date.now()-saved.at)/36e5);
+      $("#offline").hidden=false;$("#offline").textContent=`No connection. Showing the forecast saved ${age<1?"less than an hour":age===1?"1 hour":age+" hours"} ago. It will update when you're back online.`;
+    }else{$("#status").className="status card err";$("#status").textContent=`Couldn't load the forecast: ${navigator.onLine===false?"you're offline":e.message}. Check your internet connection and try again.`}
+  }
+}
+
+$("#searchForm").addEventListener("submit",async ev=>{ev.preventDefault();const name=$("#q").value.trim();if(!name)return;const box=$("#results");
+  box.hidden=false;box.innerHTML=`<div style="padding:9px 12px;color:var(--muted)">Searching…</div>`;
+  try{const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=8&language=en&format=json`).then(r=>r.json());
+    const res=r.results||[];
+    if(!res.length){box.innerHTML=`<div style="padding:9px 12px;color:var(--muted)">No places called “${esc(name)}”. Try a nearby town.</div>`;return}
+    box.innerHTML="";res.forEach(p=>{const b=document.createElement("button");b.type="button";const sub=[p.admin1,p.country].filter(Boolean).join(", ");
+      b.innerHTML=`<div></div><small></small>`;b.firstChild.textContent=p.name;b.lastChild.textContent=sub;
+      b.onclick=()=>{box.hidden=true;$("#q").value="";load({name:p.name,sub,lat:p.latitude,lon:p.longitude})};box.appendChild(b)});
+  }catch(e){box.innerHTML=`<div style="padding:9px 12px;color:var(--poor)">Search failed. Check your connection.</div>`}
+});
+document.addEventListener("click",e=>{if(!e.target.closest(".search"))$("#results").hidden=true});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#results").hidden=true});
+$("#geoBtn").addEventListener("click",()=>{
+  const b=$("#geoBtn");if(!navigator.geolocation){b.textContent="Not available";return}
+  b.textContent="Finding you…";
+  navigator.geolocation.getCurrentPosition(p=>{b.textContent="📍 Near me";load({name:"Your spot",sub:`${p.coords.latitude.toFixed(3)}°, ${p.coords.longitude.toFixed(3)}°`,lat:+p.coords.latitude.toFixed(4),lon:+p.coords.longitude.toFixed(4)})},
+    ()=>{b.textContent="📍 Near me";$("#status").hidden=false;$("#status").className="status card err";$("#status").textContent="Location access was blocked. Type a place name instead."},{timeout:10000,maximumAge:6e5});
+});
+document.querySelectorAll(".units button").forEach(b=>b.addEventListener("click",()=>{S.units=b.dataset.u;store.set("units",S.units);renderAll();document.querySelectorAll(".units button").forEach(x=>x.setAttribute("aria-pressed",x===b))}));
+document.querySelectorAll(".units button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.u===S.units));
+load(S.loc);
+setInterval(()=>{if(S.loc&&!document.hidden)load(S.loc)},30*60*1000);
+// Refresh when the app is reopened after a while, or when the connection comes back.
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.loc&&Date.now()-(S.fetchedAt||0)>20*60*1000)load(S.loc)});
+window.addEventListener("online",()=>{if(S.loc&&!$("#offline").hidden)load(S.loc)});
+
+/* ---------- installable app ---------- */
+if("serviceWorker" in navigator&&location.protocol!=="file:"){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+const standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+let installEvt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();installEvt=e;$("#installBtn").hidden=false});
+window.addEventListener("appinstalled",()=>{installEvt=null;$("#installBtn").hidden=true});
+$("#installBtn").addEventListener("click",async()=>{
+  if(installEvt){installEvt.prompt();const r=await installEvt.userChoice.catch(()=>null);installEvt=null;if(r&&r.outcome==="accepted")$("#installBtn").hidden=true}
+  else showIosTip();
+});
+function showIosTip(){
+  if(document.querySelector(".install-tip"))return;
+  const d=document.createElement("div");d.className="install-tip";d.setAttribute("role","dialog");d.setAttribute("aria-label","Install Bite Window");
+  d.innerHTML=`<img src="icons/apple-touch-icon.png" alt=""><div><b>Add Bite Window to your Home Screen</b><br>Tap the Share button <b>⬆︎</b> in Safari, then <b>Add to Home Screen</b>.</div><button type="button" aria-label="Close">×</button>`;
+  d.querySelector("button").onclick=()=>{d.remove();store.set("iosTipShown",true)};document.body.appendChild(d);
+}
+const isIos=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+if(isIos&&!standalone){$("#installBtn").hidden=false;if(!store.get("iosTipShown"))setTimeout(showIosTip,4000)}
+</script>
+</body>
+</html>
