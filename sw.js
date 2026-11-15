@@ -1,6 +1,6 @@
 // Bite Window service worker: keeps the app itself available offline.
 // Forecast data is saved by the page (localStorage), so API calls always go to the network.
-const VERSION = "bw-v2";
+const VERSION = "bw-v3";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/maskable-512.png",
   "./icons/apple-touch-icon.png", "./icons/favicon-32.png"];
