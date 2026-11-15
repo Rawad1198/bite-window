@@ -3,6 +3,10 @@
 A fishing weather app: best times to fish, moon feeding times, wind, waves, tides and a 7-day outlook.
 Live data from [Open-Meteo](https://open-meteo.com/) (free, no API key).
 
+- **English / عربي**: switch language with the button at the top (Arabic shows right-to-left).
+- **Spots**: one-tap spots along the Lebanese coast (El Mina to Naqoura), plus "Save spot" for your own places.
+- **Rain warning**: a pop-up when rain is due in the next 6 hours, and rain, wind, wave, storm and fog warnings for the next 24 hours.
+
 It is an installable web app (PWA): once it is hosted on HTTPS, phones and computers can install it
 to the home screen, it opens full-screen with its own icon, and it keeps working with the last saved
 forecast when there is no signal.
